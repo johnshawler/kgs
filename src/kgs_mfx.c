@@ -1,13 +1,15 @@
 /* kgs_mfx.c - The Killing Game Show's music and sound effects playing together on a stock Amiga 500.
  *
  * In the original game the in-game tune and the effects share one buffer and one switch: you hear either the
- * music or the effects, never both. Here the tune plays on Paula channels 0-2 (folded from four channels by
- * tools/mod3.py) and all 25 of the game's effects are mixed into channel 3 by the Audio Mixer, up to four at
- * once, so neither cuts into the other (kit/mfx.h).
+ * music or the effects, never both. Here the in-game tune plays on Paula channels 0-2 (folded from four
+ * channels by tools/mod3.py) and all 25 of the game's effects are mixed into channel 3 by the Audio Mixer, up
+ * to four at once, so neither cuts into the other (kit/mfx.h). The credits tune has no effects to make room for
+ * (the game plays none over it): it plays as the game has it, on all four channels, without the mixer.
  *
- *   kgs_mfx              play: keys 1-0, Q-P and A-G fire effects 0-24, Space switches between the in-game
- *                        and the credits tune, M music on/off, Esc or the left mouse button quits.
- *                        The border flashes red when an effect is refused, and is greener the more voices sound.
+ *   kgs_mfx              play: keys 1-0, Q-P and A-G fire effects 0-24 (in-game tune only), Space switches
+ *                        between the in-game tune and the credits tune, M music on/off, Esc or the left mouse
+ *                        button quits. The border flashes red when an effect is refused (always during the
+ *                        credits tune), and is greener the more voices sound.
  *   kgs_mfx bench [N]    measure and quit: writes bench.txt (N frames per phase, default 150) for tools/check.sh
  *   kgs_mfx script       the fixed sequence used for recordings (tools/record.sh), about 65 seconds:
  *                        the tune alone, every effect alone, then the tune with effects fired as in play
@@ -26,10 +28,10 @@
 
 /* Modules in chip RAM (Paula plays them from there); effects anywhere (the mixer copies them as it mixes). */
 CHIP_INCBIN(mod_ingame,  "assets/music/ingame3.mod");     /* "t.k.g ingame4", channel 3 empty */
-CHIP_INCBIN(mod_credits, "assets/music/credits3.mod");    /* "t.k.g credits", channel 3 empty */
+CHIP_INCBIN(mod_credits, "original/credits.mod");         /* "t.k.g credits", the game's own, four channels */
 CHIP_INCBIN(mod_ingame4, "original/ingame.mod");          /* the game's own four-channel tune, for "ab" */
 
-/* ptplayer, for "ab" only: the four-channel tune plays without the mixer (kit/mfx.c drives it otherwise). */
+/* ptplayer on its own, for four-channel tunes without the mixer (kit/mfx.c drives it otherwise). */
 void mt_install(void *custom_base __asm("a6"), void *vbr __asm("a0"), UBYTE pal __asm("d0"));
 void mt_remove(void *custom_base __asm("a6"));
 void mt_init(void *custom_base __asm("a6"), void *module __asm("a0"), void *samples __asm("a1"), UBYTE pos __asm("d0"));
@@ -75,17 +77,33 @@ static ULONG run(ULONG frames, void (*each)(void))
 }
 
 #define CUSTOM_BASE ((void *)0xdff000)
-static void play_alone(void *module, ULONG frames)
+static void music4_start(void *module)
 {
     mt_install(CUSTOM_BASE, sys_vbr, sys_is_pal);
     mt_init(CUSTOM_BASE, module, 0, 0);
     mt_channelmask(CUSTOM_BASE, 15);    /* needed: ptplayer starts with every channel muted until this is called */
     mt_mastervol(CUSTOM_BASE, 64);
     mt_Enable = 1;
-    run(frames, 0);
+}
+
+static void music4_on(int on)           /* as mfx_music(): a paused module must also be muted */
+{
+    mt_Enable = on ? 1 : 0;
+    mt_mastervol(CUSTOM_BASE, on ? 64 : 0);
+}
+
+static void music4_stop(void)
+{
     mt_Enable = 0;
     mt_end(CUSTOM_BASE);
     mt_remove(CUSTOM_BASE);
+}
+
+static void play_alone(void *module, ULONG frames)
+{
+    music4_start(module);
+    run(frames, 0);
+    music4_stop();
 }
 
 static ULONG pct10(ULONG base, ULONG n) { return n >= base ? 0 : (base - n) * 1000 / base; }
@@ -166,20 +184,24 @@ int main(int argc, char **argv)
         memset(was, 0, sizeof was);
         while (!sys_keys[KEY_ESC] && !sys_mouse_button()) {
             UWORD colour = 0;
-            for (i = 0; i < NFX; i++)
-                if (sys_keys[fx_key[i]] && !was[fx_key[i]] && !mfx_play(&fx[i])) colour = 0xf00;
-            if (sys_keys[KEY_M] && !was[KEY_M]) mfx_music(music_on ^= 1);
+            for (i = 0; i < NFX; i++)                      /* effects belong to the game: in-game tune only */
+                if (sys_keys[fx_key[i]] && !was[fx_key[i]] && (tune || !mfx_play(&fx[i]))) colour = 0xf00;
+            if (sys_keys[KEY_M] && !was[KEY_M]) {
+                music_on ^= 1;
+                if (tune) music4_on(music_on); else mfx_music(music_on);
+            }
             if (sys_keys[KEY_SPACE] && !was[KEY_SPACE]) {
-                mfx_stop();
+                if (tune) { music4_stop(); started = mfx_start(mod_ingame); }      /* back to the game */
+                else { mfx_stop(); music4_start(mod_credits); }                    /* credits: four channels */
                 tune ^= 1;
-                started = mfx_start(tune ? mod_credits : mod_ingame);
                 music_on = 1;
             }
             for (i = 0; i < 128; i++) was[i] = sys_keys[i];
-            custom->color[0] = colour ? colour : (UWORD)(mfx_voices_busy() * 0x020);
+            custom->color[0] = colour ? colour : (UWORD)(tune ? 0 : mfx_voices_busy() * 0x020);
             sys_wait_frame();
         }
         custom->color[0] = 0;
+        if (tune) { music4_stop(); started = mfx_start(0); }  /* so that the common mfx_stop() below is right */
     }
 
     mfx_stop();

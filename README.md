@@ -6,6 +6,8 @@ This project plays both at once on a stock Amiga 500. It is built on the
 [musicfx](https://github.com/johnshawler/musicfx) template:
 
 - the in-game tune plays on Paula channels 0–2 (ptplayer), folded down from four channels;
+- the credits and intro tunes are left exactly as the game has them: the game plays no effects over them, so
+  they keep all four channels (the credits tune plays that way here, without the mixer);
 - all 25 of the game's effects are mixed into channel 3 by the Audio Mixer, up to four at once;
 - so the music never loses a voice to an effect and the effects never cut each other until five sound at once.
 
@@ -47,7 +49,7 @@ UAE_MODEL=A1200 UAE_KICKSTART=/path/to/kick31.rom tools/check.sh
 
 | Command          | What it does |
 |------------------|--------------|
-| `kgs_mfx`        | Play. Keys **1–0**, **Q–P**, **A–G** fire effects 0–24. **Space** switches between the in-game and the credits tune, **M** turns the music on or off, **Esc** or the left mouse button quits. The border goes greener with each sounding voice and flashes red when an effect is refused. |
+| `kgs_mfx`        | Play. Keys **1–0**, **Q–P**, **A–G** fire effects 0–24 over the in-game tune. **Space** switches to the credits tune (the game's own, four channels, no effects) and back, **M** turns the music on or off, **Esc** or the left mouse button quits. The border goes greener with each sounding voice and flashes red when an effect is refused (always during the credits tune). |
 | `kgs_mfx script` | The fixed 64 s sequence for recordings: 10 s of the tune alone, every effect alone, then 30 s of the tune with effects fired as in play. |
 | `kgs_mfx ab`     | What the fold costs: 30 s of the game's own four-channel tune, then the same 30 s folded into three (no mixer). |
 | `kgs_mfx bench`  | Measures for `tools/check.sh` (writes `bench.txt`). |
@@ -86,8 +88,9 @@ mixer **bit for bit** (only −128 becomes −127). The other five are resampled
 all 8 bits. Effect 21 gets the game's volume of 20/64 through a per-file gain (`21.wav@0.3125`). Priorities
 follow the game's force bit: forced effects get priority 2, the rest 1.
 
-**Music: four channels into three.** The template gives the music three channels, and both KGS tunes use four
-throughout. `tools/mod3.py` folds a module:
+**Music: four channels into three, for the in-game tune only.** The template gives the music three channels
+while the effects play, and the in-game tune uses four throughout. The credits and intro tunes are not
+touched: the game plays no effects over them. `tools/mod3.py` folds a module:
 
 1. It plays the song once, following speed, tempo, pattern breaks and jumps, and the volume commands. For
    every row and channel it works out how loud the channel is: the RMS of the stretch of sample played,
@@ -100,13 +103,9 @@ throughout. `tools/mod3.py` folds a module:
 4. Notes that relied on "the channel's previous sample" get the sample written in, with a C command where
    the volume would otherwise change.
 
-It tries emptying each of the four channels and keeps the cheapest (`assets/music/fold.txt`):
-
-| Tune     | Channel emptied | Sound lost (loudness-weighted, as played) | Notes dropped |
-|----------|-----------------|-------------------------------------------|---------------|
-| in-game  | 3               | 11.9 %                                    | 475           |
-| credits  | 1               | 5.6 %                                     | 362           |
-| intro    | 1               | 15.4 %                                    | 412           |
+It tries emptying each of the four channels and keeps the cheapest (`assets/music/fold.txt`). For the
+in-game tune that is channel 3: 11.9 % of the sound (loudness-weighted, as played) is lost and 475 notes are
+dropped. Emptying channel 2 would drop fewer notes (346) but lose more sound (13.0 %).
 
 The in-game tune is genuinely four-voice almost everywhere. Its fourth channel is the quietest (an
 accompaniment line), so most of its notes cannot find room and are dropped. The A/B recording measures the
@@ -134,7 +133,7 @@ the original too, which is why the first seconds sound left-heavy.
 | `src/kgs_mfx.c`                   | the program |
 | `tools/kgs_extract.py`            | disk images → `original/`: OFS reader and both unpackers, the modules, the effects, `sfx.txt` |
 | `tools/mod3.py`                   | folds a 4-channel module into channels 0–2 and reports what it lost |
-| `tools/kgs_assets.sh`             | extract, then fold every tune into `assets/music/*3.mod` |
+| `tools/kgs_assets.sh`             | extract, then fold the in-game tune into `assets/music/ingame3.mod` |
 | `original/sfx.txt`                | the game's effect table |
-| `assets/music/fold.txt`           | what each fold lost |
+| `assets/music/fold.txt`           | what the fold lost |
 | `kit/`, `tools/` (others), `examples/` | the musicfx template. `examples/` keeps `mixer_config.i`. The template's `demo_mfx.c` needs its own `assets/fx`, which this project's effects replace. |

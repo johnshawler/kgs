@@ -1,18 +1,6 @@
-original/credits.mod: 27 patterns, 19 positions played; sound per channel [82, 18, 37, 66] (in rows at full loudness)
-  fold channel 0: 58 lost (28.5% of the sound), 395 notes dropped, 80 notes shortened or cutting another, 0 song commands lost
-  fold channel 1: 11 lost (5.6% of the sound), 362 notes dropped, 5 notes shortened or cutting another, 0 song commands lost   <- chosen
-  fold channel 2: 22 lost (10.7% of the sound), 333 notes dropped, 10 notes shortened or cutting another, 0 song commands lost
-  fold channel 3: 56 lost (27.8% of the sound), 68 notes dropped, 14 notes shortened or cutting another, 0 song commands lost
-  -> assets/music/credits3.mod: channel 3 empty, 37740 bytes
 original/ingame.mod: 36 patterns, 42 positions played; sound per channel [404, 366, 319, 239] (in rows at full loudness)
   fold channel 0: 202 lost (15.2% of the sound), 358 notes dropped, 166 notes shortened or cutting another, 0 song commands lost
   fold channel 1: 205 lost (15.5% of the sound), 459 notes dropped, 138 notes shortened or cutting another, 28 song commands lost
   fold channel 2: 172 lost (13.0% of the sound), 346 notes dropped, 112 notes shortened or cutting another, 0 song commands lost
   fold channel 3: 159 lost (11.9% of the sound), 475 notes dropped, 120 notes shortened or cutting another, 0 song commands lost   <- chosen
   -> assets/music/ingame3.mod: channel 3 empty, 91024 bytes
-original/intro.mod: 29 patterns, 30 positions played; sound per channel [586, 301, 435, 344] (in rows at full loudness)
-  fold channel 0: 481 lost (28.8% of the sound), 176 notes dropped, 56 notes shortened or cutting another, 2 song commands lost
-  fold channel 1: 256 lost (15.4% of the sound), 412 notes dropped, 93 notes shortened or cutting another, 0 song commands lost   <- chosen
-  fold channel 2: 340 lost (20.4% of the sound), 283 notes dropped, 83 notes shortened or cutting another, 0 song commands lost
-  fold channel 3: 266 lost (16.0% of the sound), 536 notes dropped, 182 notes shortened or cutting another, 2 song commands lost
-  -> assets/music/intro3.mod: channel 3 empty, 248994 bytes
