@@ -34,6 +34,12 @@ tools/check.sh
 tools/record.sh recordings/kgs_a500.wav script
 ```
 
+A bootable floppy (OFS, boots on Kickstart 1.2 and later; the player starts by itself, no Workbench needed):
+
+```bash
+tools/make_adf.py dist/kgs_mfx.adf "KGS Music+FX" "kgs_mfx" dist/kgs_mfx
+```
+
 The game's audio is **not** in this repository; it is public, and the music and samples are Psygnosis'.
 `tools/kgs_assets.sh` makes `original/` and `assets/` from your own disk images (any of the TOSEC game-disk
 dumps gives byte-identical data; the intro disk is only needed for the intro tune). Only Python 3 is needed
@@ -133,6 +139,7 @@ the original too, which is why the first seconds sound left-heavy.
 | `src/kgs_mfx.c`                   | the program |
 | `tools/kgs_extract.py`            | disk images → `original/`: OFS reader and both unpackers, the modules, the effects, `sfx.txt` |
 | `tools/mod3.py`                   | folds a 4-channel module into channels 0–2 and reports what it lost |
+| `tools/make_adf.py`               | writes a bootable OFS floppy image holding the program |
 | `tools/kgs_assets.sh`             | extract, then fold the in-game tune into `assets/music/ingame3.mod` |
 | `original/sfx.txt`                | the game's effect table |
 | `assets/music/fold.txt`           | what the fold lost |
