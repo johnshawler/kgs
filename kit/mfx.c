@@ -11,7 +11,7 @@ void mt_init(void *custom_base __asm("a6"), void *module __asm("a0"), void *samp
 void mt_end(void *custom_base __asm("a6"));
 void mt_channelmask(void *custom_base __asm("a6"), UBYTE mask __asm("d0"));
 void mt_mastervol(void *custom_base __asm("a6"), UWORD volume __asm("d0"));
-extern UBYTE mt_Enable;
+extern volatile UBYTE mt_Enable;      /* volatile: the music interrupt reads it; without it GCC may drop a store */
 
 #define CUSTOM ((void *)0xdff000)
 

@@ -2,7 +2,7 @@
 """check_gates.py bench.txt --voices N --max-cpu PCT - the gates of tools/check.sh. Exit code 0 = PASS."""
 import argparse, re, sys
 ap = argparse.ArgumentParser()
-ap.add_argument("bench"); ap.add_argument("--voices", type=int, default=4); ap.add_argument("--max-cpu", type=float, default=15)
+ap.add_argument("bench"); ap.add_argument("--voices", type=int, default=4); ap.add_argument("--max-cpu", type=float, default=15); ap.add_argument("--machine", default="A500")
 a = ap.parse_args()
 v = dict(re.findall(r"(\w+)=([\d.]+)", open(a.bench).read()))
 fail = []
@@ -18,4 +18,4 @@ if cpu > a.max_cpu: fail.append("audio takes %.1f%% of the machine, the limit is
 if need("idle") < 1000: fail.append("the idle count is too small to measure with")
 for f in fail: print("FAIL:", f)
 if fail: sys.exit(1)
-print("PASS (music on 3 channels untouched, %d effects at once, audio %.1f%% of an A500)" % (a.voices, cpu))
+print("PASS (music on 3 channels untouched, %d effects at once, audio %.1f%% of an %s)" % (a.voices, cpu, a.machine))

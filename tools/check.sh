@@ -1,7 +1,8 @@
 #!/bin/bash
 # Usage: tools/check.sh
 # The referee. Converts the effects, builds the program described in musicfx.conf, runs "<program> bench" on
-# an emulated stock Amiga 500 (FS-UAE: cycle-exact 68000, 512K chip + 512K slow RAM, PAL), and checks the gates:
+# an emulated stock Amiga 500 (FS-UAE: cycle-exact 68000, 512K chip + 512K slow RAM, PAL; another machine with
+# UAE_MODEL=A1200 UAE_KICKSTART=<rom>, see tools/run_uae.sh), and checks the gates:
 #   - the module is in chip RAM (music_in_chip=1): otherwise Paula plays silence
 #   - four effects at once all play, a fifth of lower priority is refused, nothing else is dropped
 #   - music + mixer with every voice busy take at most MAX_CPU_PCT of the machine
@@ -24,4 +25,4 @@ UAE_DONE="$D/bench.txt" tools/run_uae.sh "$D" $(( FRAMES / 10 + 90 )) -
 if [ -e "$D/bench.txt" ]; then cp "$D/bench.txt" bench.txt; else echo "FAIL: no bench.txt (crashed, hung, or did not finish)"; rm -rf "$D"; exit 1; fi
 rm -rf "$D"
 cat bench.txt
-python3 tools/check_gates.py bench.txt --voices "$VOICES" --max-cpu "$MAX_CPU_PCT"
+python3 tools/check_gates.py bench.txt --voices "$VOICES" --max-cpu "$MAX_CPU_PCT" --machine "${UAE_MODEL:-A500}"

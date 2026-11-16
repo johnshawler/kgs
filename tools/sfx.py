@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """sfx.py - turn sound effects into samples the effects mixer can play.
 
-  tools/sfx.py [--period 322] [--voices 4 | --hq] [--gain 1.0] <out-dir> <in.wav | in.raw> ...
+  tools/sfx.py [--period 322] [--voices 4 | --hq] [--gain 1.0] <out-dir> <in.wav | in.raw>[@gain] ...
 
 - WAV input (8 or 16 bit, mono or stereo, any rate) is resampled to the mixer's rate, 3546895 / period Hz on a
   PAL machine (period 322 = 11015 Hz). Raw input is taken as signed 8-bit at the mixer's rate already.
@@ -9,6 +9,8 @@
 - Standard mixer (MIXER_HQ_MODE 0): every sample is divided by --voices (mixer_sw_channels), so that the voices
   can be added without overflow. The effect keeps 8 - log2(voices) bits: 6 bits for 4 voices.
 - High quality mixer (MIXER_HQ_MODE 1): pass --hq. Samples keep all 8 bits; the mixer clips the sum.
+- A file name may end in @<gain>: that file's own loudness on top of --gain (e.g. the volume a game played it at,
+  "fx.wav@0.3125" for volume 20 of 64).
 Prints the peak and the bits kept for every file: a peak far under 127 (or 127/voices) wastes resolution, so
 normalise the source or raise --gain.
 """
@@ -32,8 +34,8 @@ def read_wav(path):
 
 def resample(vals, src, dst):
     """Windowed-sinc resampling; the low-pass sits at the lower of the two Nyquist rates."""
-    if src == dst or not vals:
-        return list(vals)
+    if abs(src - dst) <= dst / 1000 or not vals:     # equal but for the rounding of a WAV header's integer rate:
+        return list(vals)                           # pass the samples through untouched
     ratio = dst / src
     cutoff = min(1.0, ratio)
     half = 16
@@ -64,8 +66,13 @@ def main():
     a = ap.parse_args()
     rate = PAL_CLOCK / a.period
     limit = 127 if a.hq else 127 // a.voices
+    scale = 128 if a.hq else limit                  # HQ: an 8-bit source keeps its exact values (only -128 clips)
     os.makedirs(a.outdir, exist_ok=True)
     for path in a.files:
+        own = 1.0
+        if "@" in os.path.basename(path):
+            path, g = path.rsplit("@", 1)
+            own = float(g)
         name = os.path.splitext(os.path.basename(path))[0]
         if path.lower().endswith(".wav"):
             vals, src = read_wav(path)
@@ -75,9 +82,9 @@ def main():
         clipped = 0
         out = bytearray()
         for v in vals:
-            q = int(round(v * a.gain * limit))
+            q = int(round(v * a.gain * own * scale))
             if q > limit or q < -limit:
-                clipped += 1
+                clipped += q != -128 or not a.hq      # -128 -> -127 is no real clipping
                 q = max(-limit, min(limit, q))
             out.append(q & 255)
         while len(out) % 4:

@@ -5,5 +5,13 @@ bench.txt
 *.wav
 !examples/fx/*.wav
 recording*
+!recordings/
 __pycache__/
 *.pyc
+# The game's own audio and everything made from it stay out of this public repository; tools/kgs_assets.sh
+# makes them from your disk images (README.md). original/sfx.txt and assets/music/fold.txt are reports, kept.
+original/*.mod
+original/sfx/
+assets/music/*.mod
+assets/fx/*.raw
+recordings/*.flac

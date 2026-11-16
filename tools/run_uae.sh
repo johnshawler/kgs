@@ -8,6 +8,8 @@
 #      UAE_STOP_AFTER_SHOT=1 stop the emulator right after the screenshot is taken
 #      UAE_LOG=<path>        keep the full emulator log
 #      UAE_KEYS="t1:key1 t2:key2"  send X key names (xdotool) at given seconds after UAE_SHOT_WHEN exists
+#      UAE_MODEL=A1200       another Amiga model (default A500)
+#      UAE_KICKSTART=<file>  a real Kickstart ROM (default: FS-UAE's built-in AROS replacement); never committed
 HD="$(realpath "$1")"; SECS="$2"; SHOT="$3"; shift 3
 for n in $(seq 90 140); do
   if [ ! -e /tmp/.X11-unix/X$n ] && mkdir /tmp/.uae-lock-$n 2>/dev/null; then DNUM=$n; break; fi
@@ -22,7 +24,7 @@ export SDL_AUDIODRIVER=dummy
 export LP_NUM_THREADS=1
 BASE=$(mktemp -d /tmp/fsuae-base.XXXXXX)
 fs-uae --base_dir="$BASE" \
-  --amiga_model=${UAE_MODEL:-A500} \
+  --amiga_model=${UAE_MODEL:-A500} ${UAE_KICKSTART:+--kickstart_file="$UAE_KICKSTART"} \
   --hard_drive_0="$HD" --hard_drive_0_label=SYS \
   --fullscreen=0 --window_width=752 --window_height=572 \
   --video_sync=0 --automatic_input_grab=0 --initial_input_grab=0 \
