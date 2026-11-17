@@ -63,6 +63,39 @@ UAE_MODEL=A1200 UAE_KICKSTART=/path/to/kick31.rom tools/check.sh
 `tools/record.sh` records the emulator's output (48 kHz stereo). `recordings/` is where the WAV/FLAC files go;
 they are not committed either.
 
+## The patched game: music and effects together in the game itself
+
+`tools/kgs_patch.py` patches the game disk so that the game plays its in-game music **and** its effects:
+
+```bash
+tools/kgs_patch.py "<Disk 2 of 2)[f AGA Fix Ltd][game].adf" dist/kgs_patched.adf
+```
+
+Boot the patched disk (it is the game disk; the intro disk is not needed) on an Amiga with **1 MB of chip RAM
+or more**: A1200, A500+, A600, A3000, A4000. Click through the Fix Limited intro, press fire on the title and
+**Return** to start. The menu's MUSIC (F9) and SFX (F10) buttons no longer matter: you always get both.
+
+It takes the AGA-fixed dump (volume "aRAYA-fIX Limited"), the one that runs on an A1200, and changes only the
+file `kgs`: the disk is full, and the patch fits in its last two free blocks (`kgs` grows by 592 bytes).
+
+| What                     | How |
+|--------------------------|-----|
+| Where the patch lives    | `src/patch/wrapper.s` is added to the AGA fix's first hunk. Still under AmigaOS, it claims $80000–$965FF from exec, copies `src/patch/resident.s` (332 bytes) to $80000 and leaves a "EUROSOFT" poke list at $C0. The game's own start-up stub applies that list once the game is unpacked, which turns its first instruction into `jmp $80000`. The resident code applies the patches and starts the game. The game itself was written for 512K and never touches anything above $7FFFF. |
+| Both files in memory     | `SFXS` now loads to $80400 and `MUSC` stays at $2EA72. Both load once (at the first "HANG ON A SEC"), and the game stays in music mode. |
+| Effects in music mode    | The two places that ask "effects mode?" ($1A116 in the effect routine, $14AEC/$14AF2 in the frame interrupt) no longer do. |
+| Channels                 | Every effect plays on Paula channel 3 (the table's "force" bit is kept). While an effect holds it, the replay's fourth channel writes to a dummy register block with its DMA bit at 0. The effect sounds whole, and the music's fourth voice comes back with its next note. Channels 0–2 of the music are never touched, and when no effect sounds the tune plays exactly as the game has it (the module is not changed). |
+
+**Tested** in FS-UAE on an A1200 (68020, 2 MB chip) with Kickstart 3.1 40.68, with and without 8 MB of fast RAM:
+four minutes of play through several lives, a game over and a new game, and the F9/F10 buttons. In recordings,
+a matched filter against the game's own samples finds the effects (18, 13/22, 14, 24) in the patched game at
+the same moments as in the original's SFX mode, while the music plays at the same level as in the original's
+music mode. The original in music mode gives no effect matches. Effect 23 matches in every recording,
+including the original in music mode: the music uses a sample very like it.
+
+The tool checks every byte it patches against what it expects to find, and the game hunk must unpack to the
+known image. A disk that is already patched, or another dump, is refused rather than broken. The patched ADF
+is not in this repository (public; it holds the game).
+
 ## What was found on the disks
 
 Everything here was found by disassembling the game; `tools/kgs_extract.py` documents it again in code.
@@ -139,6 +172,8 @@ the original too, which is why the first seconds sound left-heavy.
 | `src/kgs_mfx.c`                   | the program |
 | `tools/kgs_extract.py`            | disk images → `original/`: OFS reader and both unpackers, the modules, the effects, `sfx.txt` |
 | `tools/mod3.py`                   | folds a 4-channel module into channels 0–2 and reports what it lost |
+| `tools/kgs_patch.py`              | patches the game disk: music and effects together in the game |
+| `src/patch/`                      | the patch: `resident.s` (runs at $80000) and `wrapper.s` (in the AGA fix's first hunk) |
 | `tools/make_adf.py`               | writes a bootable OFS floppy image holding the program |
 | `tools/kgs_assets.sh`             | extract, then fold the in-game tune into `assets/music/ingame3.mod` |
 | `original/sfx.txt`                | the game's effect table |
